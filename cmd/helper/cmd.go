@@ -24,6 +24,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path"
 	"runtime"
 	"sort"
 	"strconv"
@@ -88,6 +89,20 @@ func Detached() {
 		QuitToStdErr(err)
 	}
 
+	if runtime.GOOS == "linux" {
+		en, err := os.Executable()
+		if err != nil {
+			QuitToStdErr(err)
+		}
+		app := path.Base(en)
+		out, err := exec.Command("pgrep", "-o", app).CombinedOutput()
+		if err != nil {
+			QuitToStdErr(err)
+		}
+		if len(out) > 0 {
+			QuitToStdErr(fmt.Errorf("%s is already running. Pid %s", app, strings.TrimSuffix(string(out), "\n")))
+		}
+	}
 	for i, k := range os.Args {
 		if k != "--"+DetachedFlag && k != "-"+DetachedShortFlag && i != 0 {
 			args = append(args, k)
