@@ -75,7 +75,7 @@ func options() *client.Options {
 	options := client.DefaultOptions().
 		WithPort(port).
 		WithAddress(address).
-		WithAuth(true).
+		WithDisableAuth(false).
 		WithTokenFileName(tokenFileName).
 		WithMTLs(mtls)
 	if mtls {

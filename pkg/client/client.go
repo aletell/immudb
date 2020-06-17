@@ -216,7 +216,7 @@ func setupDialOptions(options *Options) *[]grpc.DialOption {
 		})
 		opts = []grpc.DialOption{grpc.WithTransportCredentials(transportCreds)}
 	}
-	if options.Auth {
+	if !options.DisableAuth {
 		token, err := ReadFileFromUserHomeDir(options.TokenFileName)
 		if err == nil {
 			opts = append(opts, grpc.WithUnaryInterceptor(auth.ClientUnaryInterceptor(token)))

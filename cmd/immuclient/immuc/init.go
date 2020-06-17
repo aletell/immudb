@@ -72,9 +72,9 @@ func (i *immuc) Connect(args []string) error {
 	i.options = options()
 	len, err := client.ReadFileFromUserHomeDir(i.options.TokenFileName)
 	if err != nil || len == "" {
-		i.options.Auth = false
+		i.options.DisableAuth = true
 	} else {
-		i.options.Auth = true
+		i.options.DisableAuth = false
 	}
 	if i.ImmuClient, err = client.NewImmuClient(i.options); err != nil || i.ImmuClient == nil {
 		return err

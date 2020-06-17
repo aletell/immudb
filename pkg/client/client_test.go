@@ -71,8 +71,8 @@ var plainPass string
 
 func newServer() *server.ImmuServer {
 	is := server.DefaultServer()
-	is = is.WithOptions(is.Options.WithAuth(true))
-	auth.AuthEnabled = is.Options.Auth
+	is = is.WithOptions(is.Options.WithDisableAuth(false))
+	auth.AuthEnabled = !is.Options.DisableAuth
 	var err error
 
 	storeOpts := store.DefaultOptions("", slog)
@@ -117,7 +117,7 @@ func newClient(withToken bool, token string) ImmuClient {
 		)
 	}
 
-	immuclient := DefaultClient().WithOptions(DefaultOptions().WithAuth(withToken).WithDialOptions(&dialOptions))
+	immuclient := DefaultClient().WithOptions(DefaultOptions().WithDisableAuth(!withToken).WithDialOptions(&dialOptions))
 	clientConn, _ := immuclient.Connect(context.TODO())
 	immuclient.WithClientConn(clientConn)
 	serviceClient := schema.NewImmuServiceClient(clientConn)

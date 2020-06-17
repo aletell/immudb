@@ -42,7 +42,7 @@ func (i *immuc) Login(args []string) (string, error) {
 	if err = client.WriteFileToUserHomeDir(response.Token, tokenFileName); err != nil {
 		return "", err
 	}
-	i.ImmuClient.GetOptions().Auth = true
+	i.ImmuClient.GetOptions().DisableAuth = false
 	i.ImmuClient, err = client.NewImmuClient((i.ImmuClient.GetOptions()))
 	if err != nil {
 		return "", err
@@ -59,7 +59,7 @@ func (i *immuc) Logout(args []string) (string, error) {
 	}
 	client.DeleteFileFromUserHomeDir(i.ImmuClient.GetOptions().TokenFileName)
 	i.isLoggedin = false
-	i.ImmuClient.GetOptions().Auth = false
+	i.ImmuClient.GetOptions().DisableAuth = true
 
 	i.ImmuClient, err = client.NewImmuClient((i.ImmuClient.GetOptions()))
 	if err != nil {

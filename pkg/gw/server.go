@@ -51,7 +51,7 @@ func (s *ImmuGwServer) Start() error {
 		HealthCheckRetries: 1,
 		MTLs:               s.Options.MTLs,
 		MTLsOptions:        s.Options.MTLsOptions,
-		Auth:               true,
+		DisableAuth:        false,
 		Config:             "",
 	}
 

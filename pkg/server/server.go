@@ -105,7 +105,7 @@ func (s *ImmuServer) Start() error {
 		return err
 	}
 
-	auth.AuthEnabled = s.Options.Auth
+	auth.AuthEnabled = !s.Options.DisableAuth
 	auth.DevMode = s.Options.DevMode
 	adminPassword, err := auth.DecodeBase64Password(s.Options.AdminPassword)
 	if err != nil {
@@ -323,8 +323,8 @@ func updateConfigItem(
 // UpdateAuthConfig ...
 func (s *ImmuServer) UpdateAuthConfig(ctx context.Context, req *schema.AuthConfig) (*empty.Empty, error) {
 	e := new(empty.Empty)
-	s.Options.Auth = req.GetKind() > 0
-	auth.AuthEnabled = s.Options.Auth
+	s.Options.DisableAuth = !(req.GetKind() > 0)
+	auth.AuthEnabled = !s.Options.DisableAuth
 	if err := updateConfigItem(
 		s.Options.Config,
 		"auth",

@@ -256,7 +256,7 @@ Environment variables:
   IMMUDB_PIDFILE=
   IMMUDB_LOGFILE=
   IMMUDB_MTLS=false
-  IMMUDB_AUTH=true
+  IMMUDB_DISABLE_AUTH=false
   IMMUDB_DETACHED=false
   IMMUDB_CONSISTENCY_CHECK=true
   IMMUDB_PKEY=./tools/mtls/3_application/private/localhost.key.pem
@@ -276,7 +276,7 @@ Available Commands:
 Flags:
   -a, --address string          bind address (default "127.0.0.1")
       --admin-password string   admin password (default is 'immu') as plain-text or base64 encoded (must be prefixed with 'enc:' if it is encoded)
-  -s, --auth                    enable auth
+  -s, --disable-auth            disable auth
       --certificate string      server certificate file path (default "./tools/mtls/3_application/certs/localhost.cert.pem")
       --clientcas string        clients certificates list. Aka certificate authority (default "./tools/mtls/2_intermediate/certs/ca-chain.cert.pem")
       --config string           config file (default path are configs or $HOME. Default filename is immudb.ini)
@@ -417,7 +417,7 @@ CLI client for immudb - the lightweight, high-speed immutable database for syste
 Environment variables:
   IMMUCLIENT_IMMUDB_ADDRESS=127.0.0.1
   IMMUCLIENT_IMMUDB_PORT=3322
-  IMMUCLIENT_AUTH=true
+  IMMUCLIENT_DISABLE_AUTH=false
   IMMUCLIENT_MTLS=false
   IMMUCLIENT_SERVERNAME=localhost
   IMMUCLIENT_PKEY=./tools/mtls/4_client/private/localhost.key.pem
@@ -462,6 +462,7 @@ Flags:
   -a, --immudb-address string   immudb host address (default "127.0.0.1")
   -p, --immudb-port int         immudb port number (default 3322)
   -m, --mtls                    enable mutual tls
+  -s, --disable-auth            disable auth
       --pkey string             server private key path (default "./tools/mtls/4_client/private/localhost.key.pem")
       --servername string       used to verify the hostname on the returned certificates (default "localhost")
       --tokenfile string        authentication token file (default path is $HOME or binary location; default filename is token) (default "token")

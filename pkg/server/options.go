@@ -37,7 +37,7 @@ type Options struct {
 	Logfile         string
 	MTLs            bool
 	MTLsOptions     MTLsOptions
-	Auth            bool
+	DisableAuth     bool
 	NoHistograms    bool
 	Detached        bool
 	CorruptionCheck bool
@@ -60,7 +60,7 @@ func DefaultOptions() Options {
 		Pidfile:         "",
 		Logfile:         "",
 		MTLs:            false,
-		Auth:            true,
+		DisableAuth:     false,
 		NoHistograms:    false,
 		Detached:        false,
 		CorruptionCheck: true,
@@ -136,9 +136,9 @@ func (o Options) WithMTLsOptions(MTLsOptions MTLsOptions) Options {
 	return o
 }
 
-// WithAuth sets auth
-func (o Options) WithAuth(authEnabled bool) Options {
-	o.Auth = authEnabled
+// WithDisableAuth sets auth
+func (o Options) WithDisableAuth(disableAuth bool) Options {
+	o.DisableAuth = disableAuth
 	return o
 }
 

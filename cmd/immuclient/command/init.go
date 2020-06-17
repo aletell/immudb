@@ -44,7 +44,7 @@ func Init(o *c.Options) *cobra.Command {
 Environment variables:
   IMMUCLIENT_IMMUDB_ADDRESS=127.0.0.1
   IMMUCLIENT_IMMUDB_PORT=3322
-  IMMUCLIENT_AUTH=true
+  IMMUCLIENT_DISABLE_AUTH=false
   IMMUCLIENT_MTLS=false
   IMMUCLIENT_SERVERNAME=localhost
   IMMUCLIENT_PKEY=./tools/mtls/4_client/private/localhost.key.pem
@@ -133,6 +133,7 @@ func configureOptions(cmd *cobra.Command, o *c.Options) error {
 			"authentication token file (default path is $HOME or binary location; default filename is %s)",
 			client.DefaultOptions().TokenFileName))
 	cmd.PersistentFlags().BoolP("mtls", "m", client.DefaultOptions().MTLs, "enable mutual tls")
+	cmd.PersistentFlags().BoolP("disable-auth", "s", client.DefaultOptions().DisableAuth, "disable auth")
 	cmd.PersistentFlags().String("servername", client.DefaultMTLsOptions().Servername, "used to verify the hostname on the returned certificates")
 	cmd.PersistentFlags().String("certificate", client.DefaultMTLsOptions().Certificate, "server certificate file path")
 	cmd.PersistentFlags().String("pkey", client.DefaultMTLsOptions().Pkey, "server private key path")
@@ -155,6 +156,9 @@ func configureOptions(cmd *cobra.Command, o *c.Options) error {
 		return err
 	}
 	if err := viper.BindPFlag("mtls", cmd.PersistentFlags().Lookup("mtls")); err != nil {
+		return err
+	}
+	if err := viper.BindPFlag("disable-auth", cmd.PersistentFlags().Lookup("disable-auth")); err != nil {
 		return err
 	}
 	if err := viper.BindPFlag("servername", cmd.PersistentFlags().Lookup("servername")); err != nil {
@@ -196,6 +200,7 @@ func configureOptions(cmd *cobra.Command, o *c.Options) error {
 	viper.SetDefault("immudb-address", client.DefaultOptions().Address)
 	viper.SetDefault("tokenfile", client.DefaultOptions().TokenFileName)
 	viper.SetDefault("mtls", client.DefaultOptions().MTLs)
+	viper.SetDefault("disable-auth", client.DefaultOptions().DisableAuth)
 	viper.SetDefault("servername", client.DefaultMTLsOptions().Servername)
 	viper.SetDefault("certificate", client.DefaultMTLsOptions().Certificate)
 	viper.SetDefault("pkey", client.DefaultMTLsOptions().Pkey)
