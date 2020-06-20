@@ -14,82 +14,81 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package gw
+package gwhandlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 
-	"github.com/codenotary/immudb/pkg/api/schema"
 	"github.com/codenotary/immudb/pkg/client"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"github.com/grpc-ecosystem/grpc-gateway/utilities"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-// SafesetHandler ...
-type SafesetHandler interface {
-	Safeset(w http.ResponseWriter, req *http.Request, pathParams map[string]string)
+// ByIndexHandler ...
+type ByIndexHandler interface {
+	ByIndex(w http.ResponseWriter, req *http.Request, pathParams map[string]string)
 }
 
-type safesetHandler struct {
+type byIndexHandler struct {
 	mux    *runtime.ServeMux
 	client client.ImmuClient
 }
 
-// NewSafesetHandler ...
-func NewSafesetHandler(mux *runtime.ServeMux, client client.ImmuClient) SafesetHandler {
-	return &safesetHandler{
+// NewByIndexHandler ...
+func NewByIndexHandler(mux *runtime.ServeMux, client client.ImmuClient) ByIndexHandler {
+	return &byIndexHandler{
 		mux:    mux,
 		client: client,
 	}
 }
 
-func (h *safesetHandler) Safeset(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+func (h *byIndexHandler) ByIndex(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 	ctx, cancel := context.WithCancel(req.Context())
 	defer cancel()
-	inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(h.mux, req)
-
+	_, outboundMarshaler := runtime.MarshalerForRequest(h.mux, req)
 	rctx, err := runtime.AnnotateContext(ctx, h.mux, req)
 	if err != nil {
 		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, err)
 		return
 	}
-
-	var protoReq schema.SafeSetOptions
 	var metadata runtime.ServerMetadata
+	val, ok := pathParams["index"]
+	if !ok {
+		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, status.Errorf(codes.InvalidArgument, "missing parameter %s", "index"))
+		return
+	}
+	index, err := runtime.Uint64(val)
+	if err != nil {
+		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "index", err))
+		return
+	}
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, status.Errorf(codes.InvalidArgument, "%v", berr))
-		return
-	}
-	if err = inboundMarshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
-		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, status.Errorf(codes.InvalidArgument, "%v", err))
-		return
-	}
-	if protoReq.Kv == nil {
-		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, status.Error(codes.InvalidArgument, "incorrect JSON payload"))
-		return
-	}
-	msg, err := h.client.SafeSet(rctx, protoReq.Kv.Key, protoReq.Kv.Value)
+	msg, err := h.client.ByIndex(rctx, index)
 	if err != nil {
 		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, err)
 		return
 	}
 
+	prefix, err := getKeyPrefix(req)
+	if err != nil {
+		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, err)
+		return
+	}
+	if len(prefix) > 0 && bytes.HasPrefix(msg.GetKey(), prefix) {
+		msg.Key = msg.Key[len(prefix):]
+	}
+
 	ctx = runtime.NewServerMetadataContext(ctx, metadata)
 	w.Header().Set("Content-Type", "application/json")
-
 	newData, err := json.Marshal(msg)
 	if err != nil {
 		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, err)
 		return
 	}
-
 	if _, err := w.Write(newData); err != nil {
 		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, err)
 		return

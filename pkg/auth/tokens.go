@@ -75,9 +75,9 @@ type JSONToken struct {
 
 var tokenEncoder = base64.RawURLEncoding
 
-// parsePublicTokenPayload parses the public (unencrypted) token payload
+// ParsePublicTokenPayload parses the public (unencrypted) token payload
 // works even with expired tokens (that do not pass verification)
-func parsePublicTokenPayload(token string) (*JSONToken, error) {
+func ParsePublicTokenPayload(token string) (*JSONToken, error) {
 	tokenPieces := strings.Split(token, ".")
 	if len(tokenPieces) < 3 {
 		// version.purpose.payload or version.purpose.payload.footer
@@ -112,7 +112,7 @@ func parsePublicTokenPayload(token string) (*JSONToken, error) {
 }
 
 func verifyToken(token string) (*JSONToken, error) {
-	tokenPayload, err := parsePublicTokenPayload(token)
+	tokenPayload, err := ParsePublicTokenPayload(token)
 	if err != nil {
 		return nil, err
 	}

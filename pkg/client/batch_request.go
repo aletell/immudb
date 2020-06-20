@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"bytes"
 	"io"
 	"io/ioutil"
 
@@ -46,4 +47,28 @@ func (b *BatchRequest) toKVList() (*schema.KVList, error) {
 		})
 	}
 	return list, nil
+}
+
+// FromKVList ...
+func (b *BatchRequest) FromKVList(kvList *schema.KVList, keyPrefix []byte) (*BatchRequest, error) {
+	if kvList == nil {
+		return b, nil
+	}
+	if b == nil {
+		b = new(BatchRequest)
+	}
+	kvs := kvList.GetKVs()
+	nbKVs := len(kvs)
+	b.Keys = make([]io.Reader, nbKVs)
+	b.Values = make([]io.Reader, nbKVs)
+	for i, kv := range kvs {
+		key := kv.GetKey()
+		if keyPrefix != nil {
+			key = bytes.Join([][]byte{keyPrefix, key}, nil)
+		}
+		val := kv.GetValue()
+		b.Keys[i] = bytes.NewReader(key)
+		b.Values[i] = bytes.NewReader(val)
+	}
+	return b, nil
 }

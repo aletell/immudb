@@ -31,6 +31,7 @@ import (
 	immuclient "github.com/codenotary/immudb/pkg/client"
 	"github.com/codenotary/immudb/pkg/client/auditor"
 	"github.com/codenotary/immudb/pkg/client/cache"
+	gwhandlers "github.com/codenotary/immudb/pkg/gw/handlers"
 	"github.com/codenotary/immudb/pkg/server"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/rs/cors"
@@ -64,19 +65,31 @@ func (s *ImmuGwServer) Start() error {
 
 	handler := cors.Default().Handler(mux)
 
-	sh := NewSetHandler(mux, ic)
-	ssh := NewSafesetHandler(mux, ic)
-	sgh := NewSafegetHandler(mux, ic)
-	hh := NewHistoryHandler(mux, ic)
-	sr := NewSafeReferenceHandler(mux, ic)
-	sza := NewSafeZAddHandler(mux, ic)
+	gbh := gwhandlers.NewGetBatchHandler(mux, ic)
+	sbh := gwhandlers.NewSetBatchHandler(mux, ic)
+	ish := gwhandlers.NewIScanHandler(mux, ic)
+	ch := gwhandlers.NewCountHandler(mux, ic)
+	bih := gwhandlers.NewByIndexHandler(mux, ic)
+	gh := gwhandlers.NewGetHandler(mux, ic)
+	sh := gwhandlers.NewSetHandler(mux, ic)
+	ssh := gwhandlers.NewSafesetHandler(mux, ic)
+	sgh := gwhandlers.NewSafegetHandler(mux, ic)
+	hh := gwhandlers.NewHistoryHandler(mux, ic)
+	sr := gwhandlers.NewSafeReferenceHandler(mux, ic)
+	sza := gwhandlers.NewSafeZAddHandler(mux, ic)
 
-	mux.Handle(http.MethodPost, schema.Pattern_ImmuService_Set_0(), sh.Set)
-	mux.Handle(http.MethodPost, schema.Pattern_ImmuService_SafeSet_0(), ssh.Safeset)
-	mux.Handle(http.MethodPost, schema.Pattern_ImmuService_SafeGet_0(), sgh.Safeget)
-	mux.Handle(http.MethodGet, schema.Pattern_ImmuService_History_0(), hh.History)
-	mux.Handle(http.MethodPost, schema.Pattern_ImmuService_SafeReference_0(), sr.SafeReference)
-	mux.Handle(http.MethodPost, schema.Pattern_ImmuService_SafeZAdd_0(), sza.SafeZAdd)
+	mux.Handle(http.MethodPost, schema.PatternImmuServiceGetBatch0(), gbh.GetBatch)
+	mux.Handle(http.MethodPost, schema.PatternImmuServiceSetBatch0(), sbh.SetBatch)
+	mux.Handle(http.MethodPost, schema.PatternImmuServiceIScan0(), ish.IScan)
+	mux.Handle(http.MethodGet, schema.PatternImmuServiceCount0(), ch.Count)
+	mux.Handle(http.MethodGet, schema.PatternImmuServiceByIndex0(), bih.ByIndex)
+	mux.Handle(http.MethodGet, schema.PatternImmuServiceGet0(), gh.Get)
+	mux.Handle(http.MethodPost, schema.PatternImmuServiceSet0(), sh.Set)
+	mux.Handle(http.MethodPost, schema.PatternImmuServiceSafeSet0(), ssh.Safeset)
+	mux.Handle(http.MethodPost, schema.PatternImmuServiceSafeGet0(), sgh.Safeget)
+	mux.Handle(http.MethodGet, schema.PatternImmuServiceHistory0(), hh.History)
+	mux.Handle(http.MethodPost, schema.PatternImmuServiceSafeReference0(), sr.SafeReference)
+	mux.Handle(http.MethodPost, schema.PatternImmuServiceSafeZAdd0(), sza.SafeZAdd)
 
 	err = schema.RegisterImmuServiceHandlerClient(ctx, mux, *ic.GetServiceClient())
 	if err != nil {

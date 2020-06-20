@@ -14,13 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package gw
+package gwhandlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
 	"net/http"
+	"sync"
 
 	"github.com/codenotary/immudb/pkg/api/schema"
 	"github.com/codenotary/immudb/pkg/client"
@@ -30,37 +32,38 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// SafeZAddHandler ...
-type SafeZAddHandler interface {
-	SafeZAdd(w http.ResponseWriter, req *http.Request, pathParams map[string]string)
+// SafegetHandler ...
+type SafegetHandler interface {
+	Safeget(w http.ResponseWriter, req *http.Request, pathParams map[string]string)
 }
 
-type safeZAddHandler struct {
+type safegetHandler struct {
 	mux    *runtime.ServeMux
 	client client.ImmuClient
+	sync.RWMutex
 }
 
-// NewSafeZAddHandler ...
-func NewSafeZAddHandler(mux *runtime.ServeMux, client client.ImmuClient) SafeZAddHandler {
-	return &safeZAddHandler{
+// NewSafegetHandler ...
+func NewSafegetHandler(mux *runtime.ServeMux, client client.ImmuClient) SafegetHandler {
+	return &safegetHandler{
 		mux:    mux,
 		client: client,
 	}
 }
 
-func (h *safeZAddHandler) SafeZAdd(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+func (h *safegetHandler) Safeget(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 	ctx, cancel := context.WithCancel(req.Context())
 	defer cancel()
-	inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(h.mux, req)
 
+	inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(h.mux, req)
 	rctx, err := runtime.AnnotateContext(ctx, h.mux, req)
 	if err != nil {
 		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, err)
 		return
 	}
-
-	var protoReq schema.SafeZAddOptions
+	var protoReq schema.SafeGetOptions
 	var metadata runtime.ServerMetadata
+
 	newReader, berr := utilities.IOReaderFactory(req.Body)
 	if berr != nil {
 		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, status.Errorf(codes.InvalidArgument, "%v", berr))
@@ -70,17 +73,24 @@ func (h *safeZAddHandler) SafeZAdd(w http.ResponseWriter, req *http.Request, pat
 		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, status.Errorf(codes.InvalidArgument, "%v", err))
 		return
 	}
-	if protoReq.Zopts == nil {
-		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, status.Error(codes.InvalidArgument, "incorrect JSON payload"))
-		return
-	}
-	msg, err := h.client.SafeZAdd(rctx, protoReq.Zopts.Set, protoReq.Zopts.Score, protoReq.Zopts.Key)
+
+	key, prefix, err := prefixKey(req, protoReq.Key)
 	if err != nil {
 		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, err)
 		return
 	}
 
-	ctx = runtime.NewServerMetadataContext(rctx, metadata)
+	msg, err := h.client.SafeGet(rctx, key)
+	if err != nil {
+		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, err)
+		return
+	}
+
+	if len(prefix) > 0 && bytes.HasPrefix(msg.Key, prefix) {
+		msg.Key = msg.Key[len(prefix):]
+	}
+
+	ctx = runtime.NewServerMetadataContext(ctx, metadata)
 	w.Header().Set("Content-Type", "application/json")
 	newData, err := json.Marshal(msg)
 	if err != nil {

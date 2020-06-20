@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package gw
+package gwhandlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
 	"net/http"
-	"sync"
 
 	"github.com/codenotary/immudb/pkg/api/schema"
 	"github.com/codenotary/immudb/pkg/client"
@@ -31,26 +31,25 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// SafegetHandler ...
-type SafegetHandler interface {
-	Safeget(w http.ResponseWriter, req *http.Request, pathParams map[string]string)
+// IScanHandler ...
+type IScanHandler interface {
+	IScan(w http.ResponseWriter, req *http.Request, pathParams map[string]string)
 }
 
-type safegetHandler struct {
+type iScanHandler struct {
 	mux    *runtime.ServeMux
 	client client.ImmuClient
-	sync.RWMutex
 }
 
-// NewSafegetHandler ...
-func NewSafegetHandler(mux *runtime.ServeMux, client client.ImmuClient) SafegetHandler {
-	return &safegetHandler{
+// NewIScanHandler ...
+func NewIScanHandler(mux *runtime.ServeMux, client client.ImmuClient) IScanHandler {
+	return &iScanHandler{
 		mux:    mux,
 		client: client,
 	}
 }
 
-func (h *safegetHandler) Safeget(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+func (h *iScanHandler) IScan(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 	ctx, cancel := context.WithCancel(req.Context())
 	defer cancel()
 
@@ -60,7 +59,7 @@ func (h *safegetHandler) Safeget(w http.ResponseWriter, req *http.Request, pathP
 		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, err)
 		return
 	}
-	var protoReq schema.SafeGetOptions
+	var protoReq schema.IScanOptions
 	var metadata runtime.ServerMetadata
 
 	newReader, berr := utilities.IOReaderFactory(req.Body)
@@ -73,10 +72,25 @@ func (h *safegetHandler) Safeget(w http.ResponseWriter, req *http.Request, pathP
 		return
 	}
 
-	msg, err := h.client.SafeGet(rctx, protoReq.Key)
+	// TODO OGG: IScan has to be enhanced to take an extra argument (key prefix)
+	//					 in order for it to support multiple DBs in the same store
+	msg, err := h.client.IScan(rctx, protoReq.PageNumber, protoReq.PageSize)
 	if err != nil {
 		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, err)
 		return
+	}
+
+	prefix, err := getKeyPrefix(req)
+	if err != nil {
+		runtime.HTTPError(ctx, h.mux, outboundMarshaler, w, req, err)
+		return
+	}
+	if len(prefix) > 0 {
+		for _, si := range msg.GetItems() {
+			if bytes.HasPrefix(si.GetKey(), prefix) {
+				si.Key = si.Key[len(prefix):]
+			}
+		}
 	}
 
 	ctx = runtime.NewServerMetadataContext(ctx, metadata)
