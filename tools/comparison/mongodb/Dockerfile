@@ -1,4 +1,4 @@
-FROM mongo 
+FROM mongo:6 
 
 WORKDIR /
 
