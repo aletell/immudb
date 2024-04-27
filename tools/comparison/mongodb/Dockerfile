@@ -1,4 +1,4 @@
-FROM mongo 
+FROM mongo:7.0.8 
 
 WORKDIR /
 
